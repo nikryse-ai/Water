@@ -4,8 +4,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, time, timedelta
 import os
 from fastapi import FastAPI
-import threading
 import uvicorn
+import asyncio
 
 TOKEN = os.environ.get("BOT_TOKEN")
 
@@ -23,7 +23,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     user_states[chat_id] = {"waiting_ack": False}
     await update.message.reply_text(
-        "Привет, Настюша! 💧 Я создал бота который будет напоминать тебе пить воду каждые 1,5 часа"
+        "Привет, Настюша! 💧 Я сделал тебе бота который будет напоминать пить воду каждые 1,5 часа "
         "с 7:30 до 00:00 чтобы ты не забывала"
     )
     schedule_daily_reminders(chat_id, context)
@@ -59,7 +59,7 @@ async def send_reminder(chat_id, context):
     if state.get("waiting_ack"):
         await context.bot.send_message(
             chat_id=chat_id,
-            text="⏰ Ты все ещё не выпила воду( Не забудь 💧",
+            text="⏰Эй, Ты ещё не выпила воду( Не забудь💧",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Я выпила 💦", callback_data="drank_water")]
             ])
@@ -69,7 +69,7 @@ async def send_reminder(chat_id, context):
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("Я выпила 💦", callback_data="drank_water")]
     ])
-    await context.bot.send_message(chat_id=chat_id, text="💧 Солнце, самое время попить водички!", reply_markup=keyboard)
+    await context.bot.send_message(chat_id=chat_id, text="💧 Пора попить воды!", reply_markup=keyboard)
     scheduler.add_job(
         repeat_reminder,
         "date",
@@ -84,7 +84,7 @@ async def repeat_reminder(chat_id, context):
     if state and state.get("waiting_ack"):
         await context.bot.send_message(
             chat_id=chat_id,
-            text="⏰ Ты чего всё ещё не выпила воду, а? 💧",
+            text="⏰ Солнце, Ты всё ещё не выпила воду 💧",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Я выпила 💦", callback_data="drank_water")]
             ])
@@ -96,28 +96,32 @@ async def drank_water(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if chat_id in user_states:
         user_states[chat_id]["waiting_ack"] = False
     await query.answer()
-    await query.edit_message_text("✅ Оес! Умничка моя, что не забываешь пить воду 💦")
+    await query.edit_message_text("✅ Оес) Умничка моя, что не забываешь пить воду 💦")
 
-# ------------------- Запуск бота -------------------
-app_bot = ApplicationBuilder().token(TOKEN).build()
-app_bot.add_handler(CommandHandler("start", start))
-app_bot.add_handler(CallbackQueryHandler(drank_water, pattern="drank_water"))
+# ------------------- Создаем FastAPI сервер -------------------
+app_fastapi = FastAPI()
 
-def run_bot():
-    print("Бот запущен...")
-    app_bot.run_polling()
-
-# ------------------- FastAPI веб-сервер для Render -------------------
-app = FastAPI()
-
-@app.get("/")
+@app_fastapi.get("/")
 def root():
     return {"status": "ok"}
 
-def run_web():
-    port = int(os.environ.get("PORT", 5000))  # Render задаёт PORT
-    uvicorn.run(app, host="0.0.0.0", port=port)
+# ------------------- Главная функция -------------------
+async def main():
+    app_bot = ApplicationBuilder().token(TOKEN).build()
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.add_handler(CallbackQueryHandler(drank_water, pattern="drank_water"))
 
-# ------------------- Запуск обоих потоков -------------------
-threading.Thread(target=run_bot).start()
-threading.Thread(target=run_web).start()
+    # Запуск бота в фоне
+    bot_task = asyncio.create_task(app_bot.run_polling())
+
+    # Запуск веб-сервера
+    port = int(os.environ.get("PORT", 5000))
+uvicorn_config = uvicorn.Config(app_fastapi, host="0.0.0.0", port=port, log_level="info")
+    server = uvicorn.Server(uvicorn_config)
+    server_task = asyncio.create_task(server.serve())
+
+    await asyncio.gather(bot_task, server_task)
+
+if name == "__main__":
+    
+    asyncio.run(main())
