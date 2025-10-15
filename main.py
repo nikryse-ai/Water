@@ -4,7 +4,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime, time, timedelta
 import os
 
-TOKEN = os.environ.get("8068420715:AAFW-qUq-2BSh1q-Aq5Fqr8wXT8eCf8aiXQ")
+TOKEN = os.environ.get("BOT_TOKEN")
 
 scheduler = BackgroundScheduler()
 scheduler.start()
