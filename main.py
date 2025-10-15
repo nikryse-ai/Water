@@ -19,8 +19,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     user_states[chat_id] = {"waiting_ack": False}
     await update.message.reply_text(
-        "Привет! 💧 Я буду напоминать пить воду каждые 1,5 часа "
-        "с 7:30 до полуночи. Просто оставь меня запущенным!"
+        "Привет, Настюша! 💧 Я создал бота который будет напоминать тебе пить воду каждые 1,5 часа "
+        "с 7:30 до 00:00)"
     )
     schedule_daily_reminders(chat_id, context)
 
@@ -55,7 +55,7 @@ async def send_reminder(chat_id, context):
     if state.get("waiting_ack"):
         await context.bot.send_message(
             chat_id=chat_id,
-            text="⏰ Ты ещё не выпила воду! Не забудь 💧",
+            text="⏰Солнце, ты ещё не выпила воду! Не забудь 💧",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Я выпила 💦", callback_data="drank_water")]
             ])
@@ -65,7 +65,7 @@ async def send_reminder(chat_id, context):
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("Я выпила 💦", callback_data="drank_water")]
     ])
-    await context.bot.send_message(chat_id=chat_id, text="💧 Пора выпить воды!", reply_markup=keyboard)
+    await context.bot.send_message(chat_id=chat_id, text="💧 Бусинка, пора выпить воды!", reply_markup=keyboard)
     scheduler.add_job(
         repeat_reminder,
         "date",
@@ -80,7 +80,7 @@ async def repeat_reminder(chat_id, context):
     if state and state.get("waiting_ack"):
         await context.bot.send_message(
             chat_id=chat_id,
-            text="⏰ Напоминание: всё ещё не выпила воду 💧",
+            text="⏰ Напоминаю: Ты всё ещё не выпила воду, уже пора(💧",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("Я выпила 💦", callback_data="drank_water")]
             ])
@@ -92,7 +92,7 @@ async def drank_water(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if chat_id in user_states:
         user_states[chat_id]["waiting_ack"] = False
     await query.answer()
-    await query.edit_message_text("✅ Отлично! Молодец, что не забываешь пить воду 💦")
+    await query.edit_message_text("✅ Оес! Умничка моя, что не забываешь пить воду 💦")
 
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
